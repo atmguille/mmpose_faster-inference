@@ -101,7 +101,7 @@ class TopDown(BasePose):
         """Calls either forward_train or forward_test depending on whether
         return_loss=True. Note this setting will change the expected inputs.
         When `return_loss=True`, img and img_meta are single-nested (i.e.
-        Tensor and List[dict]), and when `resturn_loss=False`, img and img_meta
+        Tensor and List[dict]), and when `return_loss=False`, img and img_meta
         should be double nested (i.e.  List[Tensor], List[List[dict]]), with
         the outer list indicating test time augmentations.
 
@@ -226,6 +226,7 @@ class TopDown(BasePose):
     def show_result(self,
                     img,
                     result,
+                    result_has_bboxes=False,  # Whether the result contains bboxes or just poses
                     skeleton=None,
                     kpt_score_thr=0.3,
                     bbox_color='green',
@@ -272,19 +273,20 @@ class TopDown(BasePose):
         Returns:
             Tensor: Visualized img, only if not `show` or `out_file`.
         """
-        img = mmcv.imread(img)
+        #img = mmcv.imread(img)
         img = img.copy()
 
-        bbox_result = []
-        bbox_labels = []
-        pose_result = []
-        for res in result:
-            if 'bbox' in res:
-                bbox_result.append(res['bbox'])
-                bbox_labels.append(res.get('label', None))
-            pose_result.append(res['keypoints'])
+        if not result_has_bboxes:
+            pose_result = result
+        else:
+            pose_result = []
+            for res in result:
+                """if 'bbox' in res:
+                    bbox_result.append(res['bbox'])
+                    bbox_labels.append(res.get('label', None))"""
+                pose_result.append(res['keypoints'])
 
-        if bbox_result:
+        '''if bbox_result:
             bboxes = np.vstack(bbox_result)
             # draw bounding boxes
             imshow_bboxes(
@@ -295,9 +297,9 @@ class TopDown(BasePose):
                 text_color=text_color,
                 thickness=bbox_thickness,
                 font_scale=font_scale,
-                show=False)
+                show=False)'''
 
-        if pose_result:
+        if len(pose_result):
             imshow_keypoints(img, pose_result, skeleton, kpt_score_thr,
                              pose_kpt_color, pose_link_color, radius,
                              thickness)

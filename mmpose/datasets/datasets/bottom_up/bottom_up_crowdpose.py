@@ -1,9 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import warnings
 
-import json_tricks as json
+#import json_tricks as json
 from mmcv import Config
-from xtcocotools.cocoeval import COCOeval
+#from xtcocotools.cocoeval import COCOeval
 
 from mmpose.datasets.builder import DATASETS
 from .bottom_up_coco import BottomUpCocoDataset

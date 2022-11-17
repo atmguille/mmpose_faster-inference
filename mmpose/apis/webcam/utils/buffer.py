@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+from __future__ import annotations
 from functools import wraps
 from queue import Queue
 from typing import Any, Dict, List, Optional
@@ -173,7 +174,7 @@ class BufferManager():
         """
         return self._buffers[name].full()
 
-    def get_sub_manager(self, buffer_names: List[str]) -> 'BufferManager':
+    def get_sub_manager(self, buffer_names: List[str]) -> BufferManager:
         """Return a :class:`BufferManager` instance that covers a subset of the
         buffers in the parent. The is usually used to partially share the
         buffers of the executor to the node.

@@ -17,9 +17,8 @@ class JointsMSELoss(nn.Module):
 
     def __init__(self, use_target_weight=False, loss_weight=1.):
         super().__init__()
+        self.criterion = nn.MSELoss()
         self.use_target_weight = use_target_weight
-        reduction = 'none' if use_target_weight else 'mean'
-        self.criterion = nn.MSELoss(reduction=reduction)
         self.loss_weight = loss_weight
 
     def forward(self, output, target, target_weight):
@@ -37,9 +36,8 @@ class JointsMSELoss(nn.Module):
             heatmap_pred = heatmaps_pred[idx].squeeze(1)
             heatmap_gt = heatmaps_gt[idx].squeeze(1)
             if self.use_target_weight:
-                loss_joint = self.criterion(heatmap_pred, heatmap_gt)
-                loss_joint = loss_joint * target_weight[:, idx]
-                loss += loss_joint.mean()
+                loss += self.criterion(heatmap_pred * target_weight[:, idx],
+                                       heatmap_gt * target_weight[:, idx])
             else:
                 loss += self.criterion(heatmap_pred, heatmap_gt)
 

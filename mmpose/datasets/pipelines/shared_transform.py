@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+from time import time
 import warnings
 from collections.abc import Sequence
 
@@ -103,8 +104,12 @@ class Compose:
         Returns:
             dict: Transformed data.
         """
+        #t_1 = time()
         for t in self.transforms:
             data = t(data)
+            #t_2 = time()
+            #print(f'{t.__class__.__name__} time: {t_2 - t_1}')
+            #t_1 = t_2
             if data is None:
                 return None
         return data
@@ -176,7 +181,8 @@ class Collect:
                 meta[key_tgt] = results[key_src]
         if 'bbox_id' in results:
             meta['bbox_id'] = results['bbox_id']
-        data[self.meta_name] = DC(meta, cpu_only=True)
+        #data[self.meta_name] = DC(meta, cpu_only=True)
+        data[self.meta_name] = meta
 
         return data
 
@@ -261,8 +267,8 @@ class Albumentation:
             if albumentations is None:
                 raise RuntimeError('albumentations is not installed')
             if not hasattr(albumentations.augmentations.transforms, obj_type):
-                warnings.warn(f'{obj_type} is not pixel-level transformations.'
-                              ' Please use with caution.')
+                warnings.warn('{obj_type} is not pixel-level transformations. '
+                              'Please use with caution.')
             obj_cls = getattr(albumentations, obj_type)
         else:
             raise TypeError(f'type must be a str, but got {type(obj_type)}')

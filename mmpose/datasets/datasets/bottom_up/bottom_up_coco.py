@@ -4,10 +4,10 @@ import tempfile
 import warnings
 from collections import OrderedDict, defaultdict
 
-import json_tricks as json
+#import json_tricks as json
 import numpy as np
 from mmcv import Config, deprecated_api_warning
-from xtcocotools.cocoeval import COCOeval
+#from xtcocotools.cocoeval import COCOeval
 
 from mmpose.core.post_processing import oks_nms, soft_oks_nms
 from mmpose.datasets.builder import DATASETS
@@ -110,22 +110,6 @@ class BottomUpCocoDataset(Kpt2dSviewRgbImgBottomUpDataset):
         db_rec['image_file'] = osp.join(self.img_prefix, self.id2name[img_id])
         db_rec['mask'] = mask_list
         db_rec['joints'] = joints_list
-
-        if self.with_bbox:
-            # add bbox and area
-            num_people = len(anno)
-            areas = np.zeros((num_people, 1))
-            bboxes = np.zeros((num_people, 4, 2))
-            for i, obj in enumerate(anno):
-                areas[i, 0] = obj['bbox'][2] * obj['bbox'][3]
-                bboxes[i, :, 0], bboxes[i, :,
-                                        1] = obj['bbox'][0], obj['bbox'][1]
-                bboxes[i, 1, 0] += obj['bbox'][2]
-                bboxes[i, 2, 1] += obj['bbox'][3]
-                bboxes[i, 3, 0] += obj['bbox'][2]
-                bboxes[i, 3, 1] += obj['bbox'][3]
-            db_rec['bboxes'] = bboxes
-            db_rec['areas'] = areas
 
         return db_rec
 

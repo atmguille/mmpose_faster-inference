@@ -39,7 +39,7 @@ model = dict(
         loss_keypoint=dict(type='JointsMSELoss', use_target_weight=True)),
     train_cfg=dict(),
     test_cfg=dict(
-        flip_test=True,
+        flip_test=False,  # TODO: Updated!!!
         post_process='default',
         shift_heatmap=True,
         modulate_kernel=11))
@@ -88,15 +88,19 @@ train_pipeline = [
         ]),
 ]
 
-val_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='TopDownGetBboxCenterScale', padding=1.25),
-    dict(type='TopDownAffine'),
+
+"""
     dict(type='ToTensor'),
     dict(
         type='NormalizeTensor',
         mean=[0.485, 0.456, 0.406],
         std=[0.229, 0.224, 0.225]),
+"""
+val_pipeline = [
+    #dict(type='LoadImageFromFile'),
+    dict(type='TopDownGetBboxCenterScale', padding=1.25),
+    dict(type='TopDownAffine'),
+
     dict(
         type='Collect',
         keys=['img'],

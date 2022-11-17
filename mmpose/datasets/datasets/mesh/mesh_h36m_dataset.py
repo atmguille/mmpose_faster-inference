@@ -2,7 +2,7 @@
 import os
 from collections import OrderedDict
 
-import json_tricks as json
+#import json_tricks as json
 import numpy as np
 
 from mmpose.core.evaluation import keypoint_mpjpe

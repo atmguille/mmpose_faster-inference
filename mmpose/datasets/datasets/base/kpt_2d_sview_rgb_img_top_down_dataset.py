@@ -3,10 +3,10 @@ import copy
 import warnings
 from abc import ABCMeta, abstractmethod
 
-import json_tricks as json
+#import json_tricks as json
 import numpy as np
 from torch.utils.data import Dataset
-from xtcocotools.coco import COCO
+#from xtcocotools.coco import COCO
 
 from mmpose.core.evaluation.top_down_eval import (keypoint_auc, keypoint_epe,
                                                   keypoint_nme,

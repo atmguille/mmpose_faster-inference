@@ -17,8 +17,8 @@ class OutputHook:
             def hook(model, input, output):
                 if self.as_tensor:
                     self.layer_outputs[name] = output
-                else:
-                    if isinstance(output, list):
+                else:                    
+                    if isinstance(output, list):   
                         self.layer_outputs[name] = [
                             out.detach().cpu().numpy() for out in output
                         ]

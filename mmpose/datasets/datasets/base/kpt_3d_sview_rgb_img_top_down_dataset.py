@@ -3,10 +3,10 @@ import copy
 import warnings
 from abc import ABCMeta, abstractmethod
 
-import json_tricks as json
+#import json_tricks as json
 import numpy as np
 from torch.utils.data import Dataset
-from xtcocotools.coco import COCO
+#from xtcocotools.coco import COCO
 
 from mmpose.datasets import DatasetInfo
 from mmpose.datasets.pipelines import Compose

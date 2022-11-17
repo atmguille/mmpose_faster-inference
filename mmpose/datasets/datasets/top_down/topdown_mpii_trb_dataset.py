@@ -5,7 +5,7 @@ import tempfile
 import warnings
 from collections import OrderedDict
 
-import json_tricks as json
+#import json_tricks as json
 import numpy as np
 from mmcv import Config, deprecated_api_warning
 

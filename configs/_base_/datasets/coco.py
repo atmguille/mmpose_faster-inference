@@ -45,7 +45,7 @@ dataset_info = dict(
         dict(
             name='left_shoulder',
             id=5,
-            color=[0, 255, 0],
+            color=[255, 128, 0],
             type='upper',
             swap='right_shoulder'),
         6:
@@ -59,7 +59,7 @@ dataset_info = dict(
         dict(
             name='left_elbow',
             id=7,
-            color=[0, 255, 0],
+            color=[255, 128, 0],
             type='upper',
             swap='right_elbow'),
         8:
@@ -73,7 +73,7 @@ dataset_info = dict(
         dict(
             name='left_wrist',
             id=9,
-            color=[0, 255, 0],
+            color=[255, 128, 0],
             type='upper',
             swap='right_wrist'),
         10:
@@ -94,7 +94,7 @@ dataset_info = dict(
         dict(
             name='right_hip',
             id=12,
-            color=[255, 128, 0],
+            color=[0, 255, 0],
             type='lower',
             swap='left_hip'),
         13:
@@ -108,7 +108,7 @@ dataset_info = dict(
         dict(
             name='right_knee',
             id=14,
-            color=[255, 128, 0],
+            color=[0, 255, 0],
             type='lower',
             swap='left_knee'),
         15:
@@ -122,7 +122,7 @@ dataset_info = dict(
         dict(
             name='right_ankle',
             id=16,
-            color=[255, 128, 0],
+            color=[0, 255, 0],
             type='lower',
             swap='left_ankle')
     },
@@ -132,9 +132,9 @@ dataset_info = dict(
         1:
         dict(link=('left_knee', 'left_hip'), id=1, color=[0, 255, 0]),
         2:
-        dict(link=('right_ankle', 'right_knee'), id=2, color=[255, 128, 0]),
+        dict(link=('right_ankle', 'right_knee'), id=2, color=[0, 255, 0]),
         3:
-        dict(link=('right_knee', 'right_hip'), id=3, color=[255, 128, 0]),
+        dict(link=('right_knee', 'right_hip'), id=3, color=[0, 255, 0]),
         4:
         dict(link=('left_hip', 'right_hip'), id=4, color=[51, 153, 255]),
         5:
@@ -147,12 +147,12 @@ dataset_info = dict(
             id=7,
             color=[51, 153, 255]),
         8:
-        dict(link=('left_shoulder', 'left_elbow'), id=8, color=[0, 255, 0]),
+        dict(link=('left_shoulder', 'left_elbow'), id=8, color=[255, 128, 0]),
         9:
         dict(
             link=('right_shoulder', 'right_elbow'), id=9, color=[255, 128, 0]),
         10:
-        dict(link=('left_elbow', 'left_wrist'), id=10, color=[0, 255, 0]),
+        dict(link=('left_elbow', 'left_wrist'), id=10, color=[255, 128, 0]),
         11:
         dict(link=('right_elbow', 'right_wrist'), id=11, color=[255, 128, 0]),
         12:

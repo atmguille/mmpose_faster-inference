@@ -3,9 +3,9 @@ import copy
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-import xtcocotools
+#import xtcocotools
 from torch.utils.data import Dataset
-from xtcocotools.coco import COCO
+#from xtcocotools.coco import COCO
 
 from mmpose.datasets import DatasetInfo
 from mmpose.datasets.pipelines import Compose
@@ -62,7 +62,6 @@ class Kpt2dSviewRgbImgBottomUpDataset(Dataset, metaclass=ABCMeta):
         self.ann_info['inference_channel'] = data_cfg['inference_channel']
         self.ann_info['dataset_channel'] = data_cfg['dataset_channel']
 
-        self.with_bbox = data_cfg.get('with_bbox', False)
         self.use_nms = data_cfg.get('use_nms', False)
         self.soft_nms = data_cfg.get('soft_nms', True)
         self.oks_thr = data_cfg.get('oks_thr', 0.9)

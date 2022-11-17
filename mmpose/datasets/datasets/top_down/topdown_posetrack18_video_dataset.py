@@ -4,7 +4,7 @@ import os.path as osp
 import tempfile
 from collections import OrderedDict, defaultdict
 
-import json_tricks as json
+#import json_tricks as json
 import numpy as np
 from mmcv import deprecated_api_warning
 

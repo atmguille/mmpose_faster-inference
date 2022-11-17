@@ -7,10 +7,14 @@ from collections import defaultdict
 import mmcv
 import numpy as np
 import torch
+from torchvision.transforms import functional as F
 from mmcv.parallel import collate, scatter
 from mmcv.runner import load_checkpoint
 from mmcv.utils.misc import deprecated_api_warning
 from PIL import Image
+import time
+
+import matplotlib.pyplot as plt
 
 from mmpose.core.bbox import bbox_xywh2xyxy, bbox_xyxy2xywh
 from mmpose.core.post_processing import oks_nms
@@ -273,11 +277,172 @@ def _inference_single_pose_model(model,
     return result['preds'], result['output_heatmap']
 
 
+def _inference_multi_pose_model(model,
+                                 imgs_or_paths,
+                                 bboxes,
+                                 dataset='TopDownCocoDataset',
+                                 dataset_info=None,
+                                 return_heatmap=False,
+                                 use_multi_frames=False):
+    """Inference human bounding boxes.
+
+    Note:
+        - num_frames: F
+        - num_bboxes: N
+        - num_keypoints: K
+
+    Args:
+        model (nn.Module): The loaded pose model.
+        imgs_or_paths (list(str) | list(np.ndarray)): Image filename(s) or
+            loaded image(s)
+        bboxes (list | np.ndarray): All bounding boxes (with scores),
+            shaped (N, 4) or (N, 5). (left, top, width, height, [score])
+            where N is number of bounding boxes.
+        dataset (str): Dataset name. Deprecated.
+        dataset_info (DatasetInfo): A class containing all dataset info.
+        return_heatmap (bool): Flag to return heatmap, default: False
+        use_multi_frames (bool): Flag to use multi frames for inference
+
+    Returns:
+        ndarray[NxKx3]: Predicted pose x, y, score.
+        heatmap[N, K, H, W]: Model output heatmap.
+    """
+
+    cfg = model.cfg
+    device = next(model.parameters()).device
+    if device.type == 'cpu':
+        device = -1
+
+    """if use_multi_frames:
+        assert 'frame_weight_test' in cfg.data.test.data_cfg
+        # use multi frames for inference
+        # the number of input frames must equal to frame weight in the config
+        assert len(imgs_or_paths) == len(
+            cfg.data.test.data_cfg.frame_weight_test)"""
+
+    # build the data pipeline
+    _test_pipeline = copy.deepcopy(cfg.test_pipeline)
+
+    has_bbox_xywh2cs = False
+    for transform in _test_pipeline:
+        if transform['type'] == 'TopDownGetBboxCenterScale':
+            has_bbox_xywh2cs = True
+            break
+    if not has_bbox_xywh2cs:
+        _test_pipeline.insert(
+            0, dict(type='TopDownGetBboxCenterScale', padding=1.25))
+    test_pipeline = Compose(_test_pipeline)
+    _pipeline_gpu_speedup(test_pipeline, next(model.parameters()).device)
+
+    assert len(bboxes[0][0]) in [4, 5]
+
+    if dataset_info is not None:
+        dataset_name = dataset_info.dataset_name
+        flip_pairs = dataset_info.flip_pairs
+    else:
+        warnings.warn(
+            'dataset is deprecated.'
+            'Please set `dataset_info` in the config.'
+            'Check https://github.com/open-mmlab/mmpose/pull/663 for details.',
+            DeprecationWarning)
+        return None
+
+    batch_metadata = []
+    #t_1 = time.time()
+
+    imgs_to_infer = np.empty(shape=(sum(len(img_bboxes) for img_bboxes in bboxes), 256, 192, 3), dtype=np.float32)
+
+    
+    starting_idx = 0
+    for img, img_bboxes in zip(imgs_or_paths, bboxes):
+        for current_idx, bbox in enumerate(img_bboxes):
+            # prepare data
+            data = {
+                'bbox':
+                bbox,
+                'bbox_score':
+                bbox[4] if len(bbox) == 5 else 1,
+                'bbox_id':
+                0,  # need to be assigned if batch_size > 1
+                'dataset':
+                dataset_name,
+                'joints_3d':
+                np.zeros((cfg.data_cfg.num_joints, 3), dtype=np.float32),
+                'joints_3d_visible':
+                np.zeros((cfg.data_cfg.num_joints, 3), dtype=np.float32),
+                'rotation':
+                0,
+                'ann_info': {
+                    'image_size': np.array(cfg.data_cfg['image_size']),
+                    'num_joints': cfg.data_cfg['num_joints'],
+                    'flip_pairs': flip_pairs
+                }
+            }
+
+            if False:#use_multi_frames:
+                # weight for different frames in multi-frame inference setting
+                data['frame_weight'] = cfg.data.test.data_cfg.frame_weight_test
+                if isinstance(imgs_or_paths[0], np.ndarray):
+                    data['img'] = imgs_or_paths
+                else:
+                    data['image_file'] = imgs_or_paths
+            else:
+                if isinstance(img, np.ndarray):
+                    data['img'] = img
+                    data['image_file'] = None
+                else:
+                    data['img'] = None
+                    data['image_file'] = img
+            
+            data = test_pipeline(data)
+
+            imgs_to_infer[starting_idx+current_idx] = data['img']
+
+            batch_metadata.append(data['img_metas'])
+
+        starting_idx += len(img_bboxes)
+    """plt.figure()
+    plt.imshow(imgs_to_infer[0] / 255.)
+    plt.savefig('test.png')
+    plt.show()
+    exit(0)"""
+
+    # Images to GPU (equivalent to ToTensor)
+    imgs_to_infer = torch.from_numpy(imgs_to_infer).permute(0, 3, 1, 2).to(device).div_(255.0)
+    # Normalize inplace (equivalent to NormalizeTensor)
+    imgs_to_infer[:, 0, :, :].sub_(0.485).div_(0.229)
+    imgs_to_infer[:, 1, :, :].sub_(0.456).div_(0.224)
+    imgs_to_infer[:, 2, :, :].sub_(0.406).div_(0.225)
+
+    # Comply with double-nested requirements for inference (we do not want augmentations!)
+    #imgs_to_infer = imgs_to_infer.unsqueeze(0)
+    #batch_metadata = [batch_metadata]
+
+    #batch_metadata = collate(batch_metadata, samples_per_gpu=len(batch_metadata))
+    #imgs_to_infer, batch_metadata = scatter((imgs_to_infer, batch_metadata['img_metas']), [device])[0]
+
+    #print('data loop', time.time() - t_1)
+
+    # forward the model
+    #t_1 = time.time()
+    with torch.no_grad():
+        result = model(
+            img=imgs_to_infer,
+            img_metas=batch_metadata,
+            return_loss=False,
+            return_heatmap=return_heatmap)
+    #print('inference', time.time() - t_1)
+
+    return result['preds'], result['output_heatmap']
+
+
 @deprecated_api_warning(name_dict=dict(img_or_path='imgs_or_paths'))
 def inference_top_down_pose_model(model,
                                   imgs_or_paths,
-                                  person_results=None,
+                                  bboxes=None,  # Updated!
                                   bbox_thr=None,
+                                  return_bboxes=False,  # If you want to return bboxes (we already have them outside so...) 
+                                                        # If False, a list of poses is returned instead of a dictionary
                                   format='xywh',
                                   dataset='TopDownCocoDataset',
                                   dataset_info=None,
@@ -350,10 +515,9 @@ def inference_top_down_pose_model(model,
     # only two kinds of bbox format is supported.
     assert format in ['xyxy', 'xywh']
 
-    pose_results = []
     returned_outputs = []
 
-    if person_results is None:
+    '''if person_results is None:
         # create dummy person results
         sample = imgs_or_paths[0] if use_multi_frames else imgs_or_paths
         if isinstance(sample, str):
@@ -363,33 +527,34 @@ def inference_top_down_pose_model(model,
         person_results = [{'bbox': np.array([0, 0, width, height])}]
 
     if len(person_results) == 0:
-        return pose_results, returned_outputs
+        return pose_results, returned_outputs'''
 
     # Change for-loop preprocess each bbox to preprocess all bboxes at once.
-    bboxes = np.array([box['bbox'] for box in person_results])
+    # bboxes = np.array([box['bbox'] for box in person_results])  # We pass it already
 
     # Select bboxes by score threshold
     if bbox_thr is not None:
         assert bboxes.shape[1] == 5
         valid_idx = np.where(bboxes[:, 4] > bbox_thr)[0]
         bboxes = bboxes[valid_idx]
-        person_results = [person_results[i] for i in valid_idx]
+        #person_results = [person_results[i] for i in valid_idx]
 
     if format == 'xyxy':
         bboxes_xyxy = bboxes
-        bboxes_xywh = bbox_xyxy2xywh(bboxes)
+        bboxes_xywh = [bbox_xyxy2xywh(img_bboxes) for img_bboxes in bboxes]
     else:
         # format is already 'xywh'
         bboxes_xywh = bboxes
-        bboxes_xyxy = bbox_xywh2xyxy(bboxes)
+        bboxes_xyxy = [bbox_xywh2xyxy(img_bboxes) for img_bboxes in bboxes]
 
     # if bbox_thr remove all bounding box
     if len(bboxes_xywh) == 0:
         return [], []
-
+    #t_1 = time.time()
     with OutputHook(model, outputs=outputs, as_tensor=False) as h:
         # poses is results['pred'] # N x 17x 3
-        poses, heatmap = _inference_single_pose_model(
+        
+        poses, heatmap = _inference_multi_pose_model(
             model,
             imgs_or_paths,
             bboxes_xywh,
@@ -403,14 +568,27 @@ def inference_top_down_pose_model(model,
 
         returned_outputs.append(h.layer_outputs)
 
-    assert len(poses) == len(person_results), print(
-        len(poses), len(person_results), len(bboxes_xyxy))
-    for pose, person_result, bbox_xyxy in zip(poses, person_results,
-                                              bboxes_xyxy):
-        pose_result = person_result.copy()
-        pose_result['keypoints'] = pose
-        pose_result['bbox'] = bbox_xyxy
-        pose_results.append(pose_result)
+    #print('outside call', time.time() - t_1)
+
+    """assert len(poses) == len(bboxes), print(
+        len(poses), len(bboxes), len(bboxes_xyxy))"""
+
+    pose_results = []
+    current_results_idx = 0
+    # Poses is a flattened list with predictions for all the images (and bboxes) together
+    for img_bboxes in bboxes_xyxy:
+        if not return_bboxes:
+            img_results = poses[current_results_idx:current_results_idx + len(img_bboxes)]
+        else:
+            img_results = []
+            for pose, bbox in zip(poses[current_results_idx:current_results_idx+len(img_bboxes)], img_bboxes):
+                img_results.append({
+                    'keypoints': pose,
+                    'bbox': bbox
+                })
+
+        pose_results.append(img_results)
+        current_results_idx += len(img_bboxes)
 
     return pose_results, returned_outputs
 
@@ -461,7 +639,6 @@ def inference_bottom_up_pose_model(model,
         dataset_name = dataset_info.dataset_name
         flip_index = dataset_info.flip_index
         sigmas = getattr(dataset_info, 'sigmas', None)
-        skeleton = getattr(dataset_info, 'skeleton', None)
     else:
         warnings.warn(
             'dataset is deprecated.'
@@ -472,7 +649,6 @@ def inference_bottom_up_pose_model(model,
         dataset_name = dataset
         flip_index = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
         sigmas = None
-        skeleton = None
 
     pose_results = []
     returned_outputs = []
@@ -491,10 +667,8 @@ def inference_bottom_up_pose_model(model,
         'dataset': dataset_name,
         'ann_info': {
             'image_size': np.array(cfg.data_cfg['image_size']),
-            'heatmap_size': cfg.data_cfg.get('heatmap_size', None),
             'num_joints': cfg.data_cfg['num_joints'],
             'flip_index': flip_index,
-            'skeleton': skeleton,
         }
     }
     if isinstance(img_or_path, np.ndarray):
@@ -544,6 +718,7 @@ def inference_bottom_up_pose_model(model,
 def vis_pose_result(model,
                     img,
                     result,
+                    result_has_bboxes=False,  # Whether the result contains bboxes or just poses
                     radius=4,
                     thickness=1,
                     kpt_score_thr=0.3,
@@ -792,6 +967,7 @@ def vis_pose_result(model,
     img = model.show_result(
         img,
         result,
+        result_has_bboxes,
         skeleton,
         radius=radius,
         thickness=thickness,

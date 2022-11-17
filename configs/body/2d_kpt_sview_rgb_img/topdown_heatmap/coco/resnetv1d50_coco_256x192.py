@@ -89,14 +89,14 @@ train_pipeline = [
 ]
 
 val_pipeline = [
-    dict(type='LoadImageFromFile'),
+    #dict(type='LoadImageFromFile'),
     dict(type='TopDownGetBboxCenterScale', padding=1.25),
     dict(type='TopDownAffine'),
-    dict(type='ToTensor'),
-    dict(
-        type='NormalizeTensor',
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]),
+    #dict(type='ToTensor'),
+    #dict(
+    #    type='NormalizeTensor',
+    #    mean=[0.485, 0.456, 0.406],
+    #    std=[0.229, 0.224, 0.225]),
     dict(
         type='Collect',
         keys=['img'],
@@ -109,9 +109,9 @@ val_pipeline = [
 test_pipeline = val_pipeline
 
 data_root = 'data/coco'
-data = dict(
-    samples_per_gpu=64,
-    workers_per_gpu=2,
+data = dict(  
+    samples_per_gpu=128,  # TODO: UPDATED!!! (64 -> 128)
+    workers_per_gpu=-1,  # TODO: UPDATED!!! (2 -> -1)
     val_dataloader=dict(samples_per_gpu=32),
     test_dataloader=dict(samples_per_gpu=32),
     train=dict(
