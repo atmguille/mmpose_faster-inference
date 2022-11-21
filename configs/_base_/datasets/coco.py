@@ -87,54 +87,54 @@ dataset_info = dict(
         dict(
             name='left_hip',
             id=11,
-            color=[0, 255, 0],
+            color=[128, 250, 0],
             type='lower',
             swap='right_hip'),
         12:
         dict(
             name='right_hip',
             id=12,
-            color=[0, 255, 0],
+            color=[128, 250, 0],
             type='lower',
             swap='left_hip'),
         13:
         dict(
             name='left_knee',
             id=13,
-            color=[0, 255, 0],
+            color=[128, 250, 0],
             type='lower',
             swap='right_knee'),
         14:
         dict(
             name='right_knee',
             id=14,
-            color=[0, 255, 0],
+            color=[128, 250, 0],
             type='lower',
             swap='left_knee'),
         15:
         dict(
             name='left_ankle',
             id=15,
-            color=[0, 255, 0],
+            color=[128, 250, 0],
             type='lower',
             swap='right_ankle'),
         16:
         dict(
             name='right_ankle',
             id=16,
-            color=[0, 255, 0],
+            color=[128, 250, 0],
             type='lower',
             swap='left_ankle')
     },
     skeleton_info={
         0:
-        dict(link=('left_ankle', 'left_knee'), id=0, color=[0, 255, 0]),
+        dict(link=('left_ankle', 'left_knee'), id=0, color=[128, 250, 0]),
         1:
-        dict(link=('left_knee', 'left_hip'), id=1, color=[0, 255, 0]),
+        dict(link=('left_knee', 'left_hip'), id=1, color=[128, 250, 0]),
         2:
-        dict(link=('right_ankle', 'right_knee'), id=2, color=[0, 255, 0]),
+        dict(link=('right_ankle', 'right_knee'), id=2, color=[128, 250, 0]),
         3:
-        dict(link=('right_knee', 'right_hip'), id=3, color=[0, 255, 0]),
+        dict(link=('right_knee', 'right_hip'), id=3, color=[128, 250, 0]),
         4:
         dict(link=('left_hip', 'right_hip'), id=4, color=[51, 153, 255]),
         5:
